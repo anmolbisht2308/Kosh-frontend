@@ -179,6 +179,15 @@ export function Dashboard() {
   const d = p as Full;
   const first = (user?.name || d.investor || "").split(" ")[0];
   const mfGainPct = d.mf.invested ? d.mf.gain / d.mf.invested : null;
+  // The CAS lists "Mutual Fund Folios" and "Mutual Funds Held in Demat Form" (ETFs and fund units at a
+  // broker) on separate lines; the card adds both, so show the split to make it match.
+  const inFolios = d.holdings.mf.filter((m) => m.held_in !== "demat").reduce((t, m) => t + m.value, 0);
+  const inDemat = d.mf.value - inFolios;
+  const mfSub =
+    inFolios > 0 && inDemat > 0
+      ? `${inrShort(inFolios)} in folios · ${inrShort(inDemat)} in demat`
+      : `${d.mf.count} fund${d.mf.count === 1 ? "" : "s"}`;
+  const costPartial = d.mf.cost_known_for < d.mf.count;
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -225,9 +234,9 @@ export function Dashboard() {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Mutual funds" value={inrShort(d.mf.value)} sub={`${d.mf.count} fund${d.mf.count === 1 ? "" : "s"}`} />
+        <Stat label="Mutual funds & ETFs" value={inrShort(d.mf.value)} sub={mfSub} />
         <Stat
-          label="Gain on funds"
+          label={costPartial && d.mf.invested ? "Gain on fund folios" : "Gain on funds"}
           value={d.mf.invested ? signedInr(d.mf.gain) : "—"}
           sub={d.mf.invested ? `${pct(mfGainPct)} on ${inrShort(d.mf.invested)} invested` : "Cost not in your statement"}
           subTone={d.mf.invested ? tone(d.mf.gain) : undefined}
