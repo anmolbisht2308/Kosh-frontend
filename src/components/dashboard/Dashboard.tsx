@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { api, type Portfolio } from "@/lib/api";
+import { api, type Portfolio, type Statement } from "@/lib/api";
 import { dateIN, inr, inrShort, pct, signedInr, tone } from "@/lib/format";
 import { useAuth } from "../Auth";
 import { toast } from "../ui/Toast";
@@ -42,6 +42,67 @@ function Empty({ onDemo }: { onDemo: () => void }) {
       </div>
       <p className="mt-6 text-xs text-ink/60">Your PDF is read in memory and thrown away. Only the holdings are kept, and you can delete them any time.</p>
     </section>
+  );
+}
+
+const BROKERS: [RegExp, string][] = [
+  [/^RAISE SECURITIES/i, "Dhan"],
+  [/^GROWW/i, "Groww"],
+  [/^INDSTOCKS/i, "INDstocks"],
+  [/^ZERODHA/i, "Zerodha"],
+  [/^PAYTM MONEY/i, "Paytm Money"],
+  [/^(RKSV|UPSTOX)/i, "Upstox"],
+  [/^ANGEL ONE/i, "Angel One"],
+  [/^KOTAK SECURITIES/i, "Kotak Securities"],
+  [/^ICICI SECURITIES/i, "ICICI Direct"],
+  [/^HDFC SECURITIES/i, "HDFC Securities"],
+];
+const KIND: Record<string, string> = { cdsl: "CDSL demat", nsdl: "NSDL demat", folios: "", nps: "" };
+
+function accountName(a: NonNullable<Statement["accounts"]>[number]): [string, string] {
+  if (a.kind === "folios") return ["Mutual fund folios", "CAMS / KFintech"];
+  if (a.kind === "nps") return ["NPS", ""];
+  const tail = a.label.match(/••\d+$/)?.[0] ?? "";
+  const broker = a.label.replace(/\s*••\d+$/, "");
+  const friendly = BROKERS.find(([re]) => re.test(broker))?.[1] ?? broker.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  return [friendly, `${KIND[a.kind]} ${tail}`.trim()];
+}
+
+/** The statement's own per-account totals, so people can tick them off against the PDF. */
+function StatementCheck({ s }: { s: Statement }) {
+  const rows = (s.accounts ?? []).filter((a) => (a.statement ?? 0) > 0 || a.read > 0);
+  if (!rows.length) return null;
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      <ul className="space-y-1.5">
+        {rows.map((a) => {
+          const ok = a.statement == null || Math.abs(a.statement - a.read) <= Math.max(100, 0.005 * a.statement);
+          const [name, kind] = accountName(a);
+          return (
+            <li key={a.label} className="flex items-start justify-between gap-3">
+              <span className="min-w-0" title={a.label}>
+                <span className="block truncate text-ink/85">{name}</span>
+                {kind && <span className="block truncate text-xs text-ink/55">{kind}</span>}
+              </span>
+              <span className="num shrink-0">
+                {inr(a.statement ?? a.read, { paise: true })}{" "}
+                <span className={ok ? "text-gain" : "text-gold-deep"} aria-hidden>
+                  {ok ? "✓" : "⚠"}
+                </span>
+                <span className="sr-only">{ok ? "fully read" : `only ${inr(a.read, { paise: true })} read`}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {s.statement_total != null && (
+        <p className="mt-2 flex items-baseline justify-between gap-3 border-t border-line pt-2 font-semibold">
+          <span>Statement total</span>
+          <span className="num">{inr(s.statement_total, { paise: true })}</span>
+        </p>
+      )}
+      <p className="mt-2 text-xs text-ink/60">These are your statement&apos;s own figures for {dateIN(s.period_to)}. ✓ means Kosh read every holding in that account. The totals at the top use today&apos;s prices and group by funds and stocks, so they differ.</p>
+    </div>
   );
 }
 
@@ -180,6 +241,7 @@ export function Dashboard() {
                     {s.source_label} {s.family === "rta" ? "CAS" : "eCAS"} {s.detailed ? "· detailed" : ""}
                   </p>
                   <p className="text-ink/60">As of {dateIN(s.period_to)}</p>
+                  <StatementCheck s={s} />
                 </li>
               ))}
             </ul>

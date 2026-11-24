@@ -104,6 +104,9 @@ export type Statement = {
   filename: string;
   uploaded_at?: string;
   counts?: Record<string, number>;
+  /** Each account's total as printed on the statement, next to what Kosh itemised (eCAS only). */
+  accounts?: { label: string; kind: "cdsl" | "nsdl" | "folios" | "nps"; statement: number | null; read: number }[];
+  statement_total?: number;
 };
 
 export type Portfolio =
