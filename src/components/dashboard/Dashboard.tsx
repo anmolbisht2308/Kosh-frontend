@@ -208,7 +208,18 @@ export function Dashboard() {
             </span>
           )}
         </div>
-        <p className="mt-4 text-xs text-white/60">
+        {d.statement_value != null && d.statement_date && !d.is_demo && (
+          <p className="mt-4 text-sm text-white/80">
+            On your statement ({dateIN(d.statement_date)}): <b className="num text-white">{inr(d.statement_value)}</b>
+            {Math.abs(d.total - d.statement_value) >= 1 && (
+              <>
+                {" · "}
+                <span className={`num font-semibold ${d.total >= d.statement_value ? "text-[#7be0b3]" : "text-[#ff9da3]"}`}>{signedInr(d.total - d.statement_value)}</span> since then from price changes
+              </>
+            )}
+          </p>
+        )}
+        <p className="mt-2 text-xs text-white/60">
           Prices: funds {dateIN(d.holdings.mf.find((m) => m.price_date)?.price_date)} (AMFI) · stocks {dateIN(d.holdings.stocks.find((s) => s.price_date)?.price_date)} (NSE close)
         </p>
       </section>

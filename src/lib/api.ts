@@ -118,6 +118,9 @@ export type Portfolio =
       statements: Statement[];
       prices_updated: { funds?: string; stocks?: string };
       total: number;
+      /** The same holdings at the statement's own prices, and the statement date. */
+      statement_value?: number;
+      statement_date?: string | null;
       day_change: number;
       xirr: number | null;
       mf: { value: number; invested: number; gain: number; cost_known_for: number; count: number };
