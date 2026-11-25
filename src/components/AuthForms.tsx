@@ -18,7 +18,11 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-function PasswordField({ id, label, value, onChange, autoComplete, hint }: { id: string; label: string; value: string; onChange: (v: string) => void; autoComplete: string; hint?: string }) {
+/* Fields are uncontrolled and read from the form on submit: anything typed before the page finished
+   loading is kept (a controlled input would be reset to "" when React takes over). */
+const field = (f: FormData, k: string) => String(f.get(k) ?? "");
+
+function PasswordField({ id, label, autoComplete, hint }: { id: string; label: string; autoComplete: string; hint?: string }) {
   const [show, setShow] = useState(false);
   return (
     <div>
@@ -26,7 +30,7 @@ function PasswordField({ id, label, value, onChange, autoComplete, hint }: { id:
         {label}
       </label>
       <div className="relative">
-        <input id={id} type={show ? "text" : "password"} required minLength={autoComplete === "new-password" ? 8 : undefined} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} className="field pr-20" aria-describedby={hint ? `${id}-hint` : undefined} />
+        <input id={id} name={id} type={show ? "text" : "password"} required minLength={autoComplete === "new-password" ? 8 : undefined} maxLength={128} autoComplete={autoComplete} className="field pr-20" aria-describedby={hint ? `${id}-hint` : undefined} />
         <button type="button" onClick={() => setShow(!show)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl px-3 py-1.5 text-sm font-semibold text-ink/70 hover:bg-paper" aria-label={show ? "Hide password" : "Show password"}>
           {show ? "Hide" : "Show"}
         </button>
@@ -53,14 +57,15 @@ function useRedirectIfSignedIn() {
 export function LoginForm() {
   const { signIn } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useRedirectIfSignedIn();
 
-  const submit = async (e: FormEvent) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const email = field(f, "email");
+    const password = field(f, "password");
     setBusy(true);
     setErr(null);
     try {
@@ -81,9 +86,9 @@ export function LoginForm() {
           <label htmlFor="email" className="label">
             Email
           </label>
-          <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
+          <input id="email" name="email" type="email" required autoComplete="email" maxLength={254} className="field" />
         </div>
-        <PasswordField id="password" label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
+        <PasswordField id="password" label="Password" autoComplete="current-password" />
         {err && (
           <p role="alert" className="rounded-xl bg-loss-soft px-3 py-2 text-sm font-medium text-loss">
             {err}
@@ -111,17 +116,17 @@ export function LoginForm() {
 export function SignupForm() {
   const { signIn } = useAuth();
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [agree, setAgree] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AuthResult | null>(null);
   const holdRedirect = useRedirectIfSignedIn();
 
-  const submit = async (e: FormEvent) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const name = field(f, "name").trim();
+    const email = field(f, "email");
+    const password = field(f, "password");
     if (password.length < 8) return setErr("Use at least 8 characters for your password");
     setBusy(true);
     setErr(null);
@@ -159,17 +164,17 @@ export function SignupForm() {
           <label htmlFor="name" className="label">
             Your name <span className="font-normal text-ink/60">(optional)</span>
           </label>
-          <input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className="field" />
+          <input id="name" name="name" autoComplete="name" maxLength={60} className="field" />
         </div>
         <div>
           <label htmlFor="email" className="label">
             Email
           </label>
-          <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
+          <input id="email" name="email" type="email" required autoComplete="email" maxLength={254} className="field" />
         </div>
-        <PasswordField id="password" label="Password" value={password} onChange={setPassword} autoComplete="new-password" hint="At least 8 characters. A short sentence is easy to remember and hard to guess." />
+        <PasswordField id="password" label="Password" autoComplete="new-password" hint="At least 8 characters. A short sentence is easy to remember and hard to guess." />
         <label className="flex cursor-pointer items-start gap-3 text-sm text-ink/80">
-          <input type="checkbox" required checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-brand)]" />
+          <input type="checkbox" name="agree" required className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-brand)]" />
           <span>
             I understand Kosh shows information about my own investments and is <b>not investment advice</b>.
           </span>
@@ -196,16 +201,17 @@ export function SignupForm() {
 export function RecoverForm() {
   const { signIn } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AuthResult | null>(null);
   const holdRedirect = useRedirectIfSignedIn();
 
-  const submit = async (e: FormEvent) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const email = field(f, "email");
+    const code = field(f, "code").toUpperCase();
+    const password = field(f, "password");
     if (password.length < 8) return setErr("Use at least 8 characters for your new password");
     setBusy(true);
     setErr(null);
@@ -244,15 +250,15 @@ export function RecoverForm() {
           <label htmlFor="email" className="label">
             Email
           </label>
-          <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
+          <input id="email" name="email" type="email" required autoComplete="email" maxLength={254} className="field" />
         </div>
         <div>
           <label htmlFor="code" className="label">
             Recovery code
           </label>
-          <input id="code" required autoComplete="off" spellCheck={false} placeholder="XXXX-XXXX-XXXX" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} className="field font-mono tracking-widest" />
+          <input id="code" required autoComplete="off" spellCheck={false} placeholder="XXXX-XXXX-XXXX" name="code" maxLength={40} className="field font-mono uppercase tracking-widest" />
         </div>
-        <PasswordField id="password" label="New password" value={password} onChange={setPassword} autoComplete="new-password" hint="At least 8 characters." />
+        <PasswordField id="password" label="New password" autoComplete="new-password" hint="At least 8 characters." />
         {err && (
           <p role="alert" className="rounded-xl bg-loss-soft px-3 py-2 text-sm font-medium text-loss">
             {err}

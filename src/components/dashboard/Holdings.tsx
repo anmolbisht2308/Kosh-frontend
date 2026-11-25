@@ -59,7 +59,7 @@ function FundSheet({ fund, onClose }: { fund: Fund; onClose: () => void }) {
       .then((r) => setTxns(r.transactions))
       .catch(() => setTxns([]));
   }, [fund]);
-  const stats = [
+  const stats: [string, string, string?][] = [
     ["Current value", inr(fund.value)],
     ["Invested", fund.cost ? inr(fund.cost) : "Not in statement"],
     ["Gain", fund.gain != null ? signedInr(fund.gain) : "—"],
@@ -70,27 +70,31 @@ function FundSheet({ fund, onClose }: { fund: Fund; onClose: () => void }) {
     ["Units", units(fund.units)],
     [
       "NAV",
-      fund.price
-        ? `${inr(fund.price, { paise: true })} · ${dateIN(fund.price_date)}`
-        : "—",
+      fund.price ? inr(fund.price, { paise: true }) : "—",
+      fund.price && fund.price_date ? `on ${dateIN(fund.price_date)}` : undefined,
     ],
   ];
   return (
     <Modal title={tidyName(fund.name)} onClose={onClose} wide>
-      <div className="flex flex-wrap items-center gap-2 text-sm text-ink/70">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-ink/70">
         <PlanBadge plan={fund.plan} />
-        {fund.category && <span>{fund.category}</span>}
-        {fund.folio && <span>· Folio {fund.folio}</span>}
-        {fund.held_in === "demat" && <span>· Held in demat</span>}
+        {[fund.category, fund.folio && `Folio ${fund.folio}`, fund.held_in === "demat" && "Held in demat"]
+          .filter(Boolean)
+          .map((t) => (
+            <span key={String(t)} className="whitespace-nowrap">
+              {t}
+            </span>
+          ))}
       </div>
       <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {stats.map(([k, v]) => (
+        {stats.map(([k, v, sub]) => (
           <div key={k} className="rounded-2xl bg-paper p-3">
             <dt className="text-xs text-ink/60">{k}</dt>
             <dd
               className={`num mt-0.5 font-semibold ${k === "Gain" ? tone(fund.gain) : ""}`}
             >
               {v}
+              {sub && <span className="block text-xs font-normal text-ink/60">{sub}</span>}
             </dd>
           </div>
         ))}
@@ -177,12 +181,22 @@ export function Holdings({
           role="tablist"
           aria-label="Holding type"
           className="flex gap-1 rounded-full bg-paper p-1"
+          onKeyDown={(e) => {
+            if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+            e.preventDefault();
+            const i = visible.findIndex((t) => t.id === current);
+            const n = visible.length;
+            const next = e.key === "Home" ? 0 : e.key === "End" ? n - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + n) % n;
+            setTab(visible[next].id);
+            e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+          }}
         >
           {visible.map((t) => (
             <button
               key={t.id}
               role="tab"
               aria-selected={current === t.id}
+              tabIndex={current === t.id ? 0 : -1}
               onClick={() => setTab(t.id)}
               className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${current === t.id ? "bg-ink text-white" : "text-ink/70 hover:text-ink"}`}
             >

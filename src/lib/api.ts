@@ -20,9 +20,32 @@ export const getToken = () => {
 export const setToken = (t: string | null) => {
   try {
     if (t) localStorage.setItem(TOKEN_KEY, t);
-    else localStorage.removeItem(TOKEN_KEY);
+    else {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem("kosh.user");
+    }
   } catch {}
 };
+
+const USER_KEY = "kosh.user";
+/** The last signed-in user, so a flaky network on page load doesn't look like being logged out. */
+export const cachedUser = (): User | null => {
+  try {
+    const raw = typeof window === "undefined" ? null : localStorage.getItem(USER_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+};
+export const cacheUser = (u: User | null) => {
+  try {
+    if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+    else localStorage.removeItem(USER_KEY);
+  } catch {}
+};
+
+/** Fired when the API says the session is no longer valid (logged out elsewhere, password changed). */
+export const SESSION_ENDED = "kosh:session-ended";
 
 type Opts = { method?: string; body?: unknown; form?: FormData; auth?: boolean };
 
@@ -42,7 +65,10 @@ export async function api<T>(path: string, opts: Opts = {}): Promise<T> {
     throw new ApiError(0, "Can't reach Kosh right now. Check your internet and try again.");
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.error ?? "Something went wrong. Please try again.");
+  if (!res.ok) {
+    if (res.status === 401 && token && typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_ENDED));
+    throw new ApiError(res.status, data.error ?? "Something went wrong. Please try again.");
+  }
   return data as T;
 }
 

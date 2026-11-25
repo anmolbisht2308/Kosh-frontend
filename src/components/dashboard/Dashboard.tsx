@@ -118,6 +118,7 @@ function Stat({ label, value, sub, subTone }: { label: string; value: string; su
 
 export function Dashboard() {
   const { user } = useAuth();
+  const [todayIST] = useState(() => new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10));
   const [p, setP] = useState<Portfolio | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -177,7 +178,12 @@ export function Dashboard() {
     );
 
   const d = p as Full;
-  const first = (user?.name || d.investor || "").split(" ")[0];
+  // a CAS prints names in capitals ("RAVI KUMAR"); the sample's made-up investor isn't the user
+  const rawFirst = (user?.name || (d.is_demo ? "" : d.investor) || "").trim().split(/\s+/)[0] ?? "";
+  const first = rawFirst ? rawFirst[0].toUpperCase() + rawFirst.slice(1).toLowerCase() : "";
+  // "today" only if the prices are from today; otherwise say which day the change is for
+  const lastPriceDate = [...d.holdings.stocks, ...d.holdings.mf].map((h) => h.price_date ?? "").sort().at(-1) ?? "";
+  const dayLabel = !lastPriceDate || lastPriceDate >= todayIST ? "today" : `on ${dateIN(lastPriceDate)}`;
   const mfGainPct = d.mf.invested ? d.mf.gain / d.mf.invested : null;
   // The CAS lists "Mutual Fund Folios" and "Mutual Funds Held in Demat Form" (ETFs and fund units at a
   // broker) on separate lines; the card adds both, so show the split to make it match.
@@ -208,7 +214,7 @@ export function Dashboard() {
         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           {d.day_change !== 0 && (
             <span className={`num rounded-full px-3 py-1 font-semibold ${d.day_change > 0 ? "bg-white/10 text-[#7be0b3]" : "bg-white/10 text-[#ff9da3]"}`}>
-              {d.day_change > 0 ? "▲" : "▼"} {signedInr(d.day_change)} today
+              {d.day_change > 0 ? "▲" : "▼"} {signedInr(d.day_change)} {dayLabel}
             </span>
           )}
           {d.xirr != null && (

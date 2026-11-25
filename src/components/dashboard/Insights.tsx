@@ -11,7 +11,7 @@ export function Insights({ items }: { items: Insight[] }) {
         </h2>
         <p className="text-xs text-ink/60">Facts about your holdings, not advice</p>
       </div>
-      <div className="mt-3 grid gap-4 lg:grid-cols-2">
+      <div className="mt-3 grid items-start gap-4 lg:grid-cols-2">
         {items.map((i, n) => (
           <article key={i.id} className={`card rise min-w-0 p-5 ${i.tone === "warn" ? "ring-gold/50" : ""}`} style={{ animationDelay: `${n * 60}ms` }}>
             <div className="flex items-start gap-3">

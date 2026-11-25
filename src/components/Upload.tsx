@@ -91,7 +91,7 @@ export function Upload() {
             onDrop={onDrop}
             className={`relative rounded-3xl border-2 border-dashed p-6 text-center transition ${drag ? "border-brand bg-brand-soft" : file ? "border-brand/40 bg-brand-soft/50" : "border-line bg-paper"}`}
           >
-            <input ref={input} id="cas-file" type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => pick(e.target.files?.[0])} />
+            <input ref={input} id="cas-file" type="file" accept="application/pdf,.pdf" className="peer sr-only" onChange={(e) => pick(e.target.files?.[0])} />
             {file ? (
               <>
                 <p className="text-3xl" aria-hidden>
@@ -110,7 +110,7 @@ export function Upload() {
                 </p>
                 <p className="mt-2 font-semibold">Drop your CAS PDF here</p>
                 <p className="text-sm text-ink/60">or</p>
-                <label htmlFor="cas-file" className="btn-ghost mt-2 cursor-pointer">
+                <label htmlFor="cas-file" className="btn-ghost mt-2 cursor-pointer peer-focus-visible:outline-[2.5px] peer-focus-visible:outline-offset-[3px] peer-focus-visible:outline-brand peer-focus-visible:outline">
                   Choose file
                 </label>
               </>

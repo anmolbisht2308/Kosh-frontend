@@ -12,6 +12,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 const CLOSE_MENUS = "kosh:close-menus";
 export const closeMenus = () => window.dispatchEvent(new Event(CLOSE_MENUS));
 let openModals = 0;
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
 export function useMenu<T extends HTMLElement>(open: boolean, close: () => void) {
   const ref = useRef<T>(null);
@@ -61,6 +62,23 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
     panel.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeRef.current();
+      if (e.key !== "Tab" || !panel.current) return;
+      // keep Tab inside the popup: the page behind it is inert while it's open
+      const items = [...panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (!items.length) {
+        e.preventDefault();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const at = document.activeElement;
+      if (e.shiftKey && (at === first || at === panel.current || !panel.current.contains(at))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (at === last || !panel.current.contains(at))) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => {

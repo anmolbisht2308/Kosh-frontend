@@ -20,12 +20,19 @@ function Section({ title, children, danger }: { title: string; children: React.R
 export function Settings() {
   const { user, logout } = useAuth();
   const [statements, setStatements] = useState<Statement[] | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | "password" | "recovery" | "delete">(null);
 
   const load = () =>
     api<Portfolio>("/api/portfolio")
-      .then((p) => setStatements(p.empty ? [] : p.statements))
-      .catch(() => setStatements([]));
+      .then((p) => {
+        setLoadErr(null);
+        setStatements(p.empty ? [] : p.statements);
+      })
+      .catch((e) => {
+        setLoadErr(e instanceof Error ? e.message : "Couldn't load your statements");
+        setStatements(null);
+      });
   useEffect(() => {
     load();
   }, []);
@@ -77,7 +84,14 @@ export function Settings() {
       </Section>
 
       <Section title="Your statements">
-        {statements === null ? (
+        {loadErr ? (
+          <p role="alert" className="text-sm text-loss">
+            {loadErr}{" "}
+            <button onClick={load} className="font-semibold underline underline-offset-4">
+              Try again
+            </button>
+          </p>
+        ) : statements === null ? (
           <div className="h-16 animate-pulse rounded-2xl bg-paper" />
         ) : statements.length === 0 ? (
           <p className="text-sm text-ink/70">No statements yet.</p>

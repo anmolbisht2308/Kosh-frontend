@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 
 const steps = [
   { n: "1", title: "Get your free CAS", text: "NSDL or CDSL emails it to demat holders every month. CAMS sends a mutual-fund one in minutes. Both are free." },
@@ -7,11 +8,28 @@ const steps = [
   { n: "3", title: "See everything", text: "Every fund and stock in one place, valued at today's prices, with the costs and returns you can't see anywhere else." },
 ];
 
+const icons: Record<string, React.ReactNode> = {
+  growth: <path d="M4 17l5-5 4 4 7-8M15 8h5v5" />,
+  receipt: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h3" />,
+  layers: <path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5" />,
+  refresh: <path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4" />,
+};
+
+function Icon({ name }: { name: string }) {
+  return (
+    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand" aria-hidden>
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {icons[name]}
+      </svg>
+    </span>
+  );
+}
+
 const features = [
-  { icon: "📈", title: "Your real yearly return", text: "XIRR on every fund, worked out from each SIP and redemption, not a rough average." },
-  { icon: "🧾", title: "What commissions cost you", text: "If you hold Regular plans, see roughly how much less they returned than the Direct plan of the same fund, in rupees a year." },
-  { icon: "🧺", title: "Funds and shares together", text: "Mutual funds from CAMS and KFintech plus stocks, bonds and NPS from your demat, counted once." },
-  { icon: "🔄", title: "Fresh prices every day", text: "Fund NAVs from AMFI and stock closing prices from NSE, updated automatically." },
+  { icon: "growth", title: "Your real yearly return", text: "XIRR on every fund, worked out from each SIP and redemption, not a rough average." },
+  { icon: "receipt", title: "What commissions cost you", text: "If you hold Regular plans, see roughly how much less they returned than the Direct plan of the same fund, in rupees a year." },
+  { icon: "layers", title: "Funds and shares together", text: "Mutual funds from CAMS and KFintech plus stocks, bonds and NPS from your demat, counted once." },
+  { icon: "refresh", title: "Fresh prices every day", text: "Fund NAVs from AMFI and stock closing prices from NSE, updated automatically." },
 ];
 
 const privacy = [
@@ -22,6 +40,10 @@ const privacy = [
 ];
 
 const faqs = [
+  {
+    q: "What is Kosh?",
+    a: "Kosh (कोश, \u201ctreasury\u201d) is a free portfolio tracker for Indian investors. Upload the CAS statement from CAMS, KFintech, NSDL or CDSL and Kosh shows all your mutual funds and stocks in one place, valued at today's prices.",
+  },
   {
     q: "Is it really free?",
     a: "Yes. Kosh uses free public data (AMFI and NSE) and the free statement you already get, so there's nothing to pay for.",
@@ -86,12 +108,35 @@ function Preview() {
   );
 }
 
+function StructuredData() {
+  const data = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: "Kosh", alternateName: ["Kosh portfolio tracker", "Kosh Money"], url: `${SITE_URL}/`, inLanguage: "en-IN", publisher: { "@id": `${SITE_URL}/#org` } },
+      { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: "Kosh", url: `${SITE_URL}/`, logo: `${SITE_URL}/icon-512.png` },
+      {
+        "@type": "WebApplication",
+        name: "Kosh",
+        url: `${SITE_URL}/`,
+        applicationCategory: "FinanceApplication",
+        operatingSystem: "Web",
+        description: SITE_DESCRIPTION,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
+        publisher: { "@id": `${SITE_URL}/#org` },
+      },
+      { "@type": "FAQPage", mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
+    ],
+  };
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />;
+}
+
 export default function Landing() {
   return (
     <main className="overflow-x-clip">
+      <StructuredData />
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-6 md:grid-cols-[1.1fr_1fr] md:pb-24 md:pt-16">
         <div className="rise">
-          <p className="eyebrow">Free for every Indian investor</p>
+          <p className="eyebrow">Kosh · free for every Indian investor</p>
           <h1 className="mt-3 font-display text-[2.6rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             All your mutual funds and stocks. <span className="text-brand">One honest view.</span>
           </h1>
@@ -105,6 +150,16 @@ export default function Landing() {
             </a>
           </div>
           <p className="mt-4 text-sm text-ink/60">No broker login · No card · Not investment advice</p>
+          <div className="mt-8 border-t border-line pt-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink/65">Reads statements from</p>
+            <ul className="mt-2.5 flex flex-wrap gap-2 text-sm font-semibold text-ink/70">
+              {["CAMS", "KFintech", "NSDL", "CDSL"].map((x) => (
+                <li key={x} className="rounded-full bg-white px-3 py-1 ring-1 ring-line">
+                  {x}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
         <Preview />
       </section>
@@ -131,9 +186,7 @@ export default function Landing() {
         <div className="mt-10 grid gap-5 sm:grid-cols-2">
           {features.map((f) => (
             <div key={f.title} className="card flex gap-4 p-6">
-              <span className="text-3xl" aria-hidden>
-                {f.icon}
-              </span>
+              <Icon name={f.icon} />
               <div>
                 <h3 className="text-lg font-semibold">{f.title}</h3>
                 <p className="mt-1 text-ink/70">{f.text}</p>
@@ -163,8 +216,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 md:py-24">
-        <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Questions</h2>
+      <section id="faq" className="mx-auto max-w-3xl px-4 py-16 sm:px-6 md:py-24">
+        <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Questions about Kosh</h2>
         <div className="mt-8 divide-y divide-line rounded-3xl bg-white ring-1 ring-line">
           {faqs.map((f) => (
             <details key={f.q} className="group px-5 py-4 sm:px-6">
@@ -192,7 +245,15 @@ export default function Landing() {
 
       <footer className="border-t border-line py-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 text-sm text-ink/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <Logo className="text-base text-ink" />
+          <div className="flex flex-col gap-2">
+            <Logo className="text-base text-ink" />
+            <nav aria-label="Footer" className="flex gap-4">
+              <Link href="/signup" className="hover:text-ink">Sign up</Link>
+              <Link href="/login" className="hover:text-ink">Log in</Link>
+              <a href="#how" className="hover:text-ink">How it works</a>
+              <a href="#faq" className="hover:text-ink">FAQ</a>
+            </nav>
+          </div>
           <p className="max-w-xl">Kosh shows information about your own investments. It is not a SEBI-registered investment adviser and nothing here is investment advice. Prices: AMFI and NSE, end of day.</p>
         </div>
       </footer>

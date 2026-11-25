@@ -10,3 +10,10 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# One address for search engines: the netlify.app name forwards to the custom domain.
+[[redirects]]
+  from = "https://kosh-money.netlify.app/*"
+  to = "https://kosh.anmolbisht.com/:splat"
+  status = 301
+  force = true
